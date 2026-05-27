@@ -3,10 +3,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "../context/AuthContext";
 import { FormField } from "../components/FormField";
+import { confirmDestructive } from "../services/feedback";
 import { showMessage } from "../services/feedback";
 
 export function AuthScreen() {
-  const { login, signup } = useAuth();
+  const { forgetSavedAccount, login, loginWithSavedAccount, rememberedAccounts, signup } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,6 +36,46 @@ export function AuthScreen() {
         <Text style={styles.subtitle}>
           Sign in to sync your wallets, transactions, subscriptions, and history across Android and the web.
         </Text>
+
+        {rememberedAccounts.length > 0 ? (
+          <View style={styles.savedAccounts}>
+            <Text style={styles.savedAccountsLabel}>Saved on this device</Text>
+            {rememberedAccounts.map((account) => (
+              <View key={account.email} style={styles.savedAccountRow}>
+                <Pressable
+                  disabled={busy}
+                  onPress={() => {
+                    setBusy(true);
+                    void loginWithSavedAccount(account.email)
+                      .catch((error) => {
+                        showMessage("Quick login failed", error instanceof Error ? error.message : "Please try again.");
+                      })
+                      .finally(() => {
+                        setBusy(false);
+                      });
+                  }}
+                  style={styles.savedAccountButton}
+                >
+                  <Text style={styles.savedAccountText}>{account.email}</Text>
+                  <Text style={styles.savedAccountHint}>Tap to continue</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    void confirmDestructive("Forget saved account", `Remove ${account.email} from this device?`).then((confirmed) => {
+                      if (!confirmed) {
+                        return;
+                      }
+                      void forgetSavedAccount(account.email);
+                    });
+                  }}
+                  style={styles.forgetButton}
+                >
+                  <Text style={styles.forgetButtonText}>Forget</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <View style={styles.segment}>
           <Pressable onPress={() => setMode("login")} style={[styles.segmentButton, mode === "login" && styles.segmentActive]}>
@@ -71,6 +112,33 @@ const styles = StyleSheet.create({
   eyebrow: { color: "#5eead4", fontSize: 13, fontWeight: "800", letterSpacing: 1.1, textTransform: "uppercase" },
   title: { color: "#f8fbff", fontSize: 30, fontWeight: "800", lineHeight: 36 },
   subtitle: { color: "#adc0ea", fontSize: 15, lineHeight: 22, marginBottom: 8 },
+  savedAccounts: {
+    gap: 10,
+    backgroundColor: "rgba(13, 22, 44, 0.95)",
+    borderRadius: 20,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.07)",
+  },
+  savedAccountsLabel: { color: "#90a4cf", fontSize: 12, fontWeight: "800", textTransform: "uppercase", letterSpacing: 1 },
+  savedAccountRow: { flexDirection: "row", gap: 10, alignItems: "center" },
+  savedAccountButton: {
+    flex: 1,
+    borderRadius: 14,
+    backgroundColor: "#141f40",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 2,
+  },
+  savedAccountText: { color: "#f8fbff", fontSize: 14, fontWeight: "700" },
+  savedAccountHint: { color: "#90a4cf", fontSize: 12 },
+  forgetButton: {
+    borderRadius: 14,
+    backgroundColor: "#382135",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  forgetButtonText: { color: "#ffd9df", fontSize: 12, fontWeight: "700" },
   segment: { flexDirection: "row", gap: 10, backgroundColor: "#101b36", borderRadius: 16, padding: 6 },
   segmentButton: { flex: 1, borderRadius: 12, alignItems: "center", paddingVertical: 12 },
   segmentActive: { backgroundColor: "#5eead4" },

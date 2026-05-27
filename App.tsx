@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { DataProvider, useData } from "./src/context/DataContext";
@@ -34,13 +34,20 @@ const navTheme = {
 function AppTabs() {
   const { pendingEvents, resolveSubscriptionEvent } = useData();
   const activeEvent = pendingEvents[0];
+  const insets = useSafeAreaInsets();
 
   return (
     <>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,
-          tabBarStyle: styles.tabBar,
+          tabBarStyle: [
+            styles.tabBar,
+            {
+              height: 66 + insets.bottom,
+              paddingBottom: Math.max(insets.bottom, 10),
+            },
+          ],
           tabBarActiveTintColor: "#5eead4",
           tabBarInactiveTintColor: "#8fa0c9",
           tabBarIcon: ({ color, size }) => {

@@ -1,12 +1,35 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { ScreenLayout } from "../components/ScreenLayout";
 import { SectionCard } from "../components/SectionCard";
+import { getDesktopBridge, type DesktopUpdateState } from "../services/desktopUpdater";
 import { showMessage } from "../services/feedback";
 
 export function SettingsScreen() {
   const { logout, user } = useAuth();
+  const desktopBridge = getDesktopBridge();
+  const [updateState, setUpdateState] = useState<DesktopUpdateState | null>(null);
+
+  useEffect(() => {
+    if (!desktopBridge) {
+      return;
+    }
+
+    let mounted = true;
+    void desktopBridge.getUpdateState().then((state) => {
+      if (mounted) {
+        setUpdateState(state);
+      }
+    });
+    const unsubscribe = desktopBridge.onUpdateState((state) => {
+      setUpdateState(state);
+    });
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [desktopBridge]);
 
   return (
     <ScreenLayout subtitle="Your account controls and Firebase-backed sync live here." title="Settings">
@@ -28,9 +51,41 @@ export function SettingsScreen() {
       </SectionCard>
       <SectionCard title="Build Notes">
         <Text style={styles.copy}>
-          The same codebase runs on Android and web. On Windows, you can use the web build directly or install the web app from your browser as a desktop app.
+          The same codebase runs on Android and web. On Windows, you can use the browser version or package it as a desktop installer.
         </Text>
       </SectionCard>
+      {desktopBridge ? (
+        <SectionCard title="Desktop Updates">
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Current version</Text>
+            <Text style={styles.value}>{updateState?.currentVersion ?? "Loading..."}</Text>
+          </View>
+          <Text style={styles.copy}>{updateState?.message ?? "Ready to check GitHub Releases for updates."}</Text>
+          {updateState?.status === "available" ? (
+            <Pressable
+              onPress={() => {
+                void desktopBridge.downloadAndInstallUpdate().catch((error) => {
+                  showMessage("Update failed", error instanceof Error ? error.message : "Please try again.");
+                });
+              }}
+              style={styles.updatePrimary}
+            >
+              <Text style={styles.updatePrimaryText}>Download And Install {updateState.availableVersion}</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={() => {
+                void desktopBridge.checkForUpdates().catch((error) => {
+                  showMessage("Update check failed", error instanceof Error ? error.message : "Please try again.");
+                });
+              }}
+              style={styles.updateSecondary}
+            >
+              <Text style={styles.updateSecondaryText}>Look For An Update</Text>
+            </Pressable>
+          )}
+        </SectionCard>
+      ) : null}
     </ScreenLayout>
   );
 }
@@ -47,4 +102,18 @@ const styles = StyleSheet.create({
   },
   logoutText: { color: "#fff6f7", fontWeight: "800", fontSize: 15 },
   copy: { color: "#dce6ff", fontSize: 15, lineHeight: 22 },
+  updatePrimary: {
+    backgroundColor: "#5eead4",
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  updatePrimaryText: { color: "#082032", fontWeight: "800", fontSize: 15 },
+  updateSecondary: {
+    backgroundColor: "#1d2b4d",
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  updateSecondaryText: { color: "#dce6ff", fontWeight: "800", fontSize: 15 },
 });

@@ -2,6 +2,10 @@ node_modules
 .expo
 dist
 web-build
+desktop-release
 firebase-debug.log
 .env
 private
+.android-sdk
+.android-cmdline-tools
+.android-commandlinetools.zip
