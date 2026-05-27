@@ -22,13 +22,13 @@
       "bundler": "metro",
       "output": "single"
     },
-    "extra": {
-      "eas": {
-        "projectId": "replace-with-your-eas-project-id"
-      }
-    },
     "plugins": [
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "691a218c-f630-4407-b43a-18500ae757ac"
+      }
+    }
   }
 }
